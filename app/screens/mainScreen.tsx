@@ -6,11 +6,16 @@ import {
     Button,
     Dimensions,
     StyleSheet,
+    Text,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View
 } from 'react-native';
 
+import EditableNumber from '../../src/components/EditableNumber';
 import { useLandscapeLock } from '../../src/hooks/useOrientation';
+import { usePlayers } from '../../src/hooks/usePlayers';
+import { useTimer } from '../../src/hooks/useTimer';
 import { COLORS } from '../../src/styles/theme';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -18,15 +23,64 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 export default function MainScreen() {
     useLandscapeLock();
 
-    const [fontsLoaded] = useFonts({
-        Digital: require('../../assets/fonts/DS-DIGIB.ttf'),
-    });
+    const [jugadoresDeseados, setJugadoresDeseados] = useState(12);
+    const [cantidadInput, setCantidadInput] = useState('12');
+    const [editandoCantidad, setEditandoCantidad] = useState(false);
 
-    if (!fontsLoaded) return null;
+    const [tiempoPorTurno, setTiempoPorTurno] = useState(30);
+
+    const { players, currentIndex, addOrNext, reset: resetPlayers, incrementCycleForCurrent } = usePlayers(1);
+
+    const onExpire = () => {
+        incrementCycleForCurrent();
+    };
+
+    const { isRunning, start, stop, reset: resetTimer, setTimeLeft } = useTimer(tiempoPorTurno, onExpire);
+
+    const toggleRun = () => {
+        if (isRunning) stop(); else start();
+    };
+
+    const agregarJugador = () => {
+        addOrNext(jugadoresDeseados);
+        setTimeLeft(tiempoPorTurno);
+    };
+
+    const reiniciar = () => {
+        resetPlayers();
+        resetTimer(tiempoPorTurno);
+        stop();
+    };
+
+    const actualizarCantidad = () => {
+        const nuevo = parseInt(cantidadInput, 10);
+        if (!isNaN(nuevo) && nuevo >= 1 && nuevo <= 12) {
+            setJugadoresDeseados(nuevo);
+            setEditandoCantidad(false);
+        }
+    };
+
+    const jugadorActual = players[currentIndex] ?? { id: 1, ciclosCompletados: 0 };
 
     return (
         <LinearGradient colors={[COLORS.backgroundStart, COLORS.backgroundEnd]} style={styles.container}>
             <StatusBar style="light" />
+
+            {editandoCantidad ? (
+                <EditableNumber value={cantidadInput} onChange={setCantidadInput} onConfirm={actualizarCantidad} />
+            ) : (
+                <TouchableOpacity onPress={() => setEditandoCantidad(true)}>
+                    <Text style={styles.jugadorTexto}>JUGADOR {jugadorActual.id}</Text>
+                </TouchableOpacity>
+            )}
+
+            <Text style={styles.ciclosTexto}>Ciclos: {jugadorActual.ciclosCompletados}</Text>
+            <View style={styles.buttonRow}>
+                <Button title={isRunning ? '⏹ Detener' : '▶ Iniciar'} onPress={toggleRun} />
+                <Button title="➡ Siguiente" onPress={agregarJugador} />
+                <Button title="🔄 Reiniciar" onPress={reiniciar} />
+            </View>
+
         </LinearGradient>
     );
 }

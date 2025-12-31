@@ -8,11 +8,11 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    TouchableWithoutFeedback,
     View
 } from 'react-native';
 
 import EditableNumber from '../../src/components/EditableNumber';
+import TimerDisplay from '../../src/components/TimerDisplay';
 import { useLandscapeLock } from '../../src/hooks/useOrientation';
 import { usePlayers } from '../../src/hooks/usePlayers';
 import { useTimer } from '../../src/hooks/useTimer';
@@ -24,10 +24,12 @@ export default function MainScreen() {
     useLandscapeLock();
 
     const [jugadoresDeseados, setJugadoresDeseados] = useState(12);
-    const [cantidadInput, setCantidadInput] = useState('12');
+    const [cantidadInput, setCantidadInput] = useState('5');
     const [editandoCantidad, setEditandoCantidad] = useState(false);
 
     const [tiempoPorTurno, setTiempoPorTurno] = useState(30);
+    const [tiempoInput, setTiempoInput] = useState('30');
+    const [editandoTiempo, setEditandoTiempo] = useState(false);
 
     const { players, currentIndex, addOrNext, reset: resetPlayers, incrementCycleForCurrent } = usePlayers(1);
 
@@ -35,7 +37,7 @@ export default function MainScreen() {
         incrementCycleForCurrent();
     };
 
-    const { isRunning, start, stop, reset: resetTimer, setTimeLeft } = useTimer(tiempoPorTurno, onExpire);
+    const { timeLeft, isRunning, start, stop, reset: resetTimer, setTimeLeft } = useTimer(tiempoPorTurno, onExpire);
 
     const toggleRun = () => {
         if (isRunning) stop(); else start();
@@ -52,6 +54,15 @@ export default function MainScreen() {
         stop();
     };
 
+    const actualizarTiempo = () => {
+        const nuevo = parseInt(tiempoInput, 10);
+        if (!isNaN(nuevo)) {
+            setTiempoPorTurno(nuevo);
+            setTimeLeft(nuevo);
+            setEditandoTiempo(false);
+        }
+    };
+
     const actualizarCantidad = () => {
         const nuevo = parseInt(cantidadInput, 10);
         if (!isNaN(nuevo) && nuevo >= 1 && nuevo <= 12) {
@@ -59,6 +70,12 @@ export default function MainScreen() {
             setEditandoCantidad(false);
         }
     };
+
+    const [fontsLoaded] = useFonts({
+        Digital: require('../../assets/fonts/DS-DIGIB.ttf'),
+    });
+
+    if (!fontsLoaded) return null;
 
     const jugadorActual = players[currentIndex] ?? { id: 1, ciclosCompletados: 0 };
 
@@ -75,6 +92,13 @@ export default function MainScreen() {
             )}
 
             <Text style={styles.ciclosTexto}>Ciclos: {jugadorActual.ciclosCompletados}</Text>
+
+            {editandoTiempo ? (
+                <EditableNumber value={tiempoInput} onChange={setTiempoInput} onConfirm={actualizarTiempo} />
+            ) : (
+                <TimerDisplay timeLeft={timeLeft} onPress={() => setEditandoTiempo(true)} fontFamily="Digital" />
+            )}
+
             <View style={styles.buttonRow}>
                 <Button title={isRunning ? '⏹ Detener' : '▶ Iniciar'} onPress={toggleRun} />
                 <Button title="➡ Siguiente" onPress={agregarJugador} />

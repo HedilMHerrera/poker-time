@@ -8,10 +8,12 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View
 } from 'react-native';
 
 import EditableNumber from '../../src/components/EditableNumber';
+import HistoryPanel from '../../src/components/HistoryPanel';
 import TimerDisplay from '../../src/components/TimerDisplay';
 import { useLandscapeLock } from '../../src/hooks/useOrientation';
 import { usePlayers } from '../../src/hooks/usePlayers';
@@ -31,13 +33,17 @@ export default function MainScreen() {
     const [tiempoInput, setTiempoInput] = useState('30');
     const [editandoTiempo, setEditandoTiempo] = useState(false);
 
-    const { players, currentIndex, addOrNext, reset: resetPlayers, incrementCycleForCurrent } = usePlayers(1);
+    const [panelVisible, setPanelVisible] = useState(false);
+
+    const { players, currentIndex, addOrNext, reset: resetPlayers, incrementCycleForCurrent, history } = usePlayers(1);
 
     const onExpire = () => {
         incrementCycleForCurrent();
     };
 
     const { timeLeft, isRunning, start, stop, reset: resetTimer, setTimeLeft } = useTimer(tiempoPorTurno, onExpire);
+    
+    const togglePanel = () => setPanelVisible(v => !v);
 
     const toggleRun = () => {
         if (isRunning) stop(); else start();
@@ -83,6 +89,10 @@ export default function MainScreen() {
         <LinearGradient colors={[COLORS.backgroundStart, COLORS.backgroundEnd]} style={styles.container}>
             <StatusBar style="light" />
 
+            <TouchableOpacity onPress={togglePanel} style={styles.historialButton}>
+                <Text style={styles.historialTitulo}>Historial</Text>
+            </TouchableOpacity>
+
             {editandoCantidad ? (
                 <EditableNumber value={cantidadInput} onChange={setCantidadInput} onConfirm={actualizarCantidad} />
             ) : (
@@ -105,6 +115,13 @@ export default function MainScreen() {
                 <Button title="🔄 Reiniciar" onPress={reiniciar} />
             </View>
 
+            {panelVisible &&(
+                <TouchableWithoutFeedback onPress={() => setPanelVisible(false)}>
+                    <View style={styles.overlay}/>
+                </TouchableWithoutFeedback>
+            )}
+
+            <HistoryPanel visible={panelVisible} items={history} onClose={() => setPanelVisible(false)} />
         </LinearGradient>
     );
 }
@@ -115,6 +132,18 @@ const styles = StyleSheet.create({
         padding: 24,
         alignItems: 'center',
         justifyContent: 'center'
+    },
+
+    historialButton:{
+        position: 'absolute',
+        top: 30,
+        right: 30,
+        zIndex: 5
+    },
+
+    historialTitulo:{
+        fontSize: 20,
+        color: COLORS.primary
     },
 
     jugadorTexto: {
